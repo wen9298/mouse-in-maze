@@ -174,8 +174,8 @@ canvas{display:block;margin:0 auto;image-rendering:pixelated;border-radius:4px}
           <option value="3">隨機產生</option>
         </select>
         <select id="dirSelect">
-          <option value="4">4 方向</option>
-          <option value="8">8 方向</option>
+          <option value="4">4個方向</option>
+          <option value="8">8個方向</option>
         </select>
         <button class="btn btn-primary" id="btnStart">▶ 開始</button>
         <button class="btn" id="btnStep" disabled>⏭ 單步</button>
@@ -237,7 +237,7 @@ canvas{display:block;margin:0 auto;image-rendering:pixelated;border-radius:4px}
   <section id="tab-random" class="tab-panel">
     <div class="card">
       <h3>隨機迷宮產生器（Recursive Backtracker）</h3>
-      <p style="margin-bottom:1rem">使用 Recursive Backtracking 演算法隨機產生迷宮，保證從入口到出口至少存在一條路徑。可選擇 4 方向或 8 方向的連通方式。</p>
+      <p style="margin-bottom:1rem">使用 Recursive Backtracking 演算法隨機產生迷宮，保證從入口到出口至少存在一條路徑。可選擇 4個或8個方向的連通方式。</p>
 
       <div class="controls-row">
         <div class="coord-group">
@@ -247,8 +247,8 @@ canvas{display:block;margin:0 auto;image-rendering:pixelated;border-radius:4px}
           <input type="number" id="genCols" value="21" min="7" max="61" step="2">
         </div>
         <select id="genDir">
-          <option value="4">4 方向</option>
-          <option value="8">8 方向</option>
+          <option value="4">4個方向</option>
+          <option value="8">8個方向</option>
         </select>
         <button class="btn btn-primary" id="btnGen2">🎲 產生</button>
         <button class="btn" id="btnSolveGen">▶ 求解此迷宮</button>
@@ -275,7 +275,7 @@ canvas{display:block;margin:0 auto;image-rendering:pixelated;border-radius:4px}
       <h3>演算法說明</h3>
       <ul style="padding-left:1.2rem;margin-bottom:1rem">
         <li>使用 Stack（堆疊）實作 DFS（深度優先搜尋）的 Try and Error 方法。</li>
-        <li>每次從堆疊頂端取出當前位置，依序嘗試各方向（4 或 8 方向）。</li>
+        <li>每次從堆疊頂端取出當前位置，依序嘗試各方向（4個或8個方向）。</li>
         <li>找到可走的鄰居就入堆疊，繼續前進；所有方向都不通則回溯（pop）。</li>
         <li>到達出口時，堆疊中的所有位置即為解答路徑。</li>
         <li>使用 0（通道）/ 1（牆壁）/ 2（走過但不在解答路徑）/ 3（解答路徑）表示結果。</li>
@@ -709,7 +709,7 @@ function generateForTab2(){
   gctx.fillStyle='#a64d79';
   gctx.fillRect((cc-2)*cellSz+2,(rr-2)*cellSz+2,cellSz-4,cellSz-4);
 
-  document.getElementById('genStatus').textContent=`已產生 ${rr}x${cc} 隨機迷宮（${dirN} 方向連通）`;
+  document.getElementById('genStatus').textContent=`已產生 ${rr}x${cc} 隨機迷宮（${dirN}個方向連通）`;
 
   // Show matrix
   const gel=document.getElementById('genMatrixOutput');
