@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HW3 — Mouse in Maze | 資料結構作業</title>
+<style>
+/* ===== Reset & Base ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f7f8;--surface:#fff;--border:#e2e2e5;
+  --text:#1a1a2e;--text2:#555;--text3:#888;
+  --accent:#2563eb;--accent-hover:#1d4ed8;
+  --wall:#3b3b4f;--open:#f0ece3;--visited:#6fa8dc;
+  --dead:#f1c232;--path:#4caf50;--start:#e06666;--exit:#a64d79;
+  --random-wall:#2d2d3d;--random-open:#e8e4db;
+  --radius:8px;--shadow:0 1px 3px rgba(0,0,0,.08);
+  --font-sans:'Segoe UI','PingFang TC','Microsoft JhengHei',system-ui,sans-serif;
+  --font-mono:'SF Mono','Fira Code','Consolas',monospace;
+}
+body{
+  font-family:var(--font-sans);background:var(--bg);color:var(--text);
+  line-height:1.6;min-height:100vh;
+}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ===== Layout ===== */
+.page-header{
+  background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
+  color:#fff;padding:2.5rem 1.5rem 2rem;text-align:center;
+}
+.page-header h1{font-size:1.75rem;font-weight:700;letter-spacing:.02em;margin-bottom:.35rem}
+.page-header .subtitle{font-size:.95rem;opacity:.75;font-weight:400}
+.container{max-width:1100px;margin:0 auto;padding:1.5rem}
+.tabs{
+  display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:1.5rem;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+}
+.tab-btn{
+  padding:.65rem 1.25rem;font-size:.9rem;font-weight:500;cursor:pointer;
+  border:none;background:none;color:var(--text2);white-space:nowrap;
+  border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ===== Cards ===== */
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.25rem;margin-bottom:1.25rem;box-shadow:var(--shadow);
+}
+.card h3{font-size:1.05rem;font-weight:600;margin-bottom:.75rem;color:var(--text)}
+.card p,.card li{font-size:.9rem;color:var(--text2);line-height:1.7}
+
+/* ===== Controls ===== */
+.controls-row{
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:1rem;
+}
+select,input[type="number"]{
+  font-family:var(--font-sans);font-size:.875rem;padding:6px 10px;
+  border:1px solid var(--border);border-radius:6px;background:var(--surface);
+  color:var(--text);min-width:0;
+}
+select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.btn{
+  font-family:var(--font-sans);font-size:.875rem;padding:7px 16px;
+  border-radius:6px;border:1px solid var(--border);cursor:pointer;
+  background:var(--surface);color:var(--text);transition:all .15s;
+  display:inline-flex;align-items:center;gap:5px;font-weight:500;
+}
+.btn:hover{background:#f0f0f3}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-danger{background:#dc2626;color:#fff;border-color:#dc2626}
+.btn-danger:hover{background:#b91c1c}
+
+.speed-wrap{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--text3)}
+.speed-wrap input[type="range"]{width:80px;accent-color:var(--accent)}
+
+.coord-group{display:flex;align-items:center;gap:4px;font-size:.82rem;color:var(--text2)}
+.coord-group input[type="number"]{width:52px;text-align:center;padding:4px 6px}
+.coord-group label{font-weight:500;white-space:nowrap}
+
+/* ===== Maze Canvas ===== */
+.maze-area{overflow-x:auto;padding:4px 0}
+canvas{display:block;margin:0 auto;image-rendering:pixelated;border-radius:4px}
+
+/* ===== Legend ===== */
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:.8rem;color:var(--text2)}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-box{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+
+/* ===== Status ===== */
+.status-bar{
+  font-size:.875rem;margin-top:10px;padding:8px 12px;border-radius:6px;
+  background:#f8f8fa;color:var(--text2);min-height:36px;
+}
+
+/* ===== Matrix View ===== */
+.matrix-view{
+  font-family:var(--font-mono);font-size:.78rem;line-height:1.4;
+  background:#1a1a2e;color:#a8d8a8;padding:12px 16px;border-radius:6px;
+  overflow-x:auto;margin-top:10px;white-space:pre;max-height:360px;overflow-y:auto;
+}
+.matrix-view .wall-char{color:#ff6b6b}
+.matrix-view .path-char{color:#4caf50;font-weight:700}
+.matrix-view .visit-char{color:#6fa8dc}
+.matrix-view .dead-char{color:#f1c232}
+
+/* ===== Code Block ===== */
+.code-block{
+  background:#1e1e2e;color:#cdd6f4;padding:1rem;border-radius:6px;
+  font-family:var(--font-mono);font-size:.78rem;line-height:1.55;
+  overflow-x:auto;max-height:500px;overflow-y:auto;white-space:pre;
+}
+.code-block .kw{color:#cba6f7}
+.code-block .type{color:#89b4fa}
+.code-block .str{color:#a6e3a1}
+.code-block .cmt{color:#6c7086;font-style:italic}
+.code-block .num{color:#fab387}
+.code-block .fn{color:#89dceb}
+
+/* ===== Screenshots Grid ===== */
+.screenshots{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:1rem}
+.screenshot-card{
+  border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
+  background:var(--surface);box-shadow:var(--shadow);
+}
+.screenshot-card canvas{width:100%;height:auto;display:block}
+.screenshot-card .caption{padding:8px 12px;font-size:.82rem;color:var(--text2);text-align:center}
+
+/* ===== Responsive ===== */
+@media(max-width:640px){
+  .page-header{padding:1.5rem 1rem}
+  .page-header h1{font-size:1.35rem}
+  .container{padding:1rem}
+  .controls-row{gap:6px}
+  .coord-group input[type="number"]{width:44px}
+  .screenshots{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>🐭 HW3 — Mouse in Maze</h1>
+
+</header>
+
+<div class="container">
+  <!-- Tabs -->
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="solver">迷宮求解器</button>
+    <button class="tab-btn" data-tab="random">隨機迷宮產生</button>
+    <button class="tab-btn" data-tab="screenshots">Output Screenshots</button>
+    <button class="tab-btn" data-tab="source">原始碼 & 說明</button>
+  </nav>
+
+  <!-- ==================== Tab 1: Solver ==================== -->
+  <section id="tab-solver" class="tab-panel active">
+
+    <div class="card">
+      <h3>迷宮求解</h3>
+
+      <div class="controls-row">
+        <select id="mazeSelect">
+          <option value="0">maze.txt（6x6）</option>
+          <option value="1">maze2.txt（10x10）</option>
+          <option value="2">maze3.txt（16x16）</option>
+          <option value="3">隨機產生</option>
+        </select>
+        <select id="dirSelect">
+          <option value="4">4 方向</option>
+          <option value="8">8 方向</option>
+        </select>
+        <button class="btn btn-primary" id="btnStart">▶ 開始</button>
+        <button class="btn" id="btnStep" disabled>⏭ 單步</button>
+        <button class="btn" id="btnReset">↺ 重置</button>
+        <div class="speed-wrap">
+          <span>速度</span>
+          <input type="range" id="speedSlider" min="1" max="20" value="6" step="1">
+          <span id="speedVal">6</span>
+        </div>
+      </div>
+
+      <!-- Random size controls (hidden unless "random" selected) -->
+      <div class="controls-row" id="randomControls" style="display:none">
+        <div class="coord-group">
+          <label>隨機迷宮大小：</label>
+          <input type="number" id="randRows" value="21" min="7" max="61" step="2">
+          <span>x</span>
+          <input type="number" id="randCols" value="21" min="7" max="61" step="2">
+          <button class="btn" id="btnGenerate">🎲 產生新迷宮</button>
+        </div>
+      </div>
+
+      <!-- Reassign entrance/exit -->
+      <div class="controls-row">
+        <div class="coord-group">
+          <label>入口（row, col）：</label>
+          <input type="number" id="startR" value="1" min="0">
+          <input type="number" id="startC" value="1" min="0">
+        </div>
+        <div class="coord-group">
+          <label>出口（row, col）：</label>
+          <input type="number" id="exitR" value="" min="0">
+          <input type="number" id="exitC" value="" min="0">
+        </div>
+        <button class="btn" id="btnApplyCoords">套用起終點</button>
+      </div>
+
+      <div class="maze-area"><canvas id="maze-canvas"></canvas></div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="legend-box" style="background:var(--wall)"></div>牆壁（1）</div>
+        <div class="legend-item"><div class="legend-box" style="background:var(--open);border:1px solid #ccc"></div>通道（0）</div>
+        <div class="legend-item"><div class="legend-box" style="background:var(--visited)"></div>探索中（2）</div>
+        <div class="legend-item"><div class="legend-box" style="background:var(--dead)"></div>死路回溯</div>
+        <div class="legend-item"><div class="legend-box" style="background:var(--path)"></div>解答路徑（3）</div>
+        <div class="legend-item"><div class="legend-box" style="background:var(--start)"></div>起點</div>
+        <div class="legend-item"><div class="legend-box" style="background:var(--exit)"></div>終點</div>
+        <div class="legend-item">🐭 老鼠位置</div>
+      </div>
+
+      <div class="status-bar" id="status">選擇迷宮並按「開始」</div>
+
+      <!-- 0/1/2/3 Matrix Output -->
+      <div id="matrixOutput" class="matrix-view" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- ==================== Tab 2: Random Maze ==================== -->
+  <section id="tab-random" class="tab-panel">
+    <div class="card">
+      <h3>隨機迷宮產生器（Recursive Backtracker）</h3>
+      <p style="margin-bottom:1rem">使用 Recursive Backtracking 演算法隨機產生迷宮，保證從入口到出口至少存在一條路徑。可選擇 4 方向或 8 方向的連通方式。</p>
+
+      <div class="controls-row">
+        <div class="coord-group">
+          <label>大小：</label>
+          <input type="number" id="genRows" value="21" min="7" max="61" step="2">
+          <span>x</span>
+          <input type="number" id="genCols" value="21" min="7" max="61" step="2">
+        </div>
+        <select id="genDir">
+          <option value="4">4 方向</option>
+          <option value="8">8 方向</option>
+        </select>
+        <button class="btn btn-primary" id="btnGen2">🎲 產生</button>
+        <button class="btn" id="btnSolveGen">▶ 求解此迷宮</button>
+      </div>
+
+      <div class="maze-area"><canvas id="gen-canvas"></canvas></div>
+      <div class="status-bar" id="genStatus">設定大小後按「產生」</div>
+      <div id="genMatrixOutput" class="matrix-view" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- ==================== Tab 3: Screenshots ==================== -->
+  <section id="tab-screenshots" class="tab-panel">
+    <div class="card">
+      <h3>Output Screenshots</h3>
+      <p>使用 0/1/2/3 表示迷宮與解答；以 dataGridView 搭配背景顏色呈現迷宮。</p>
+      <div class="screenshots" id="screenshotGrid"></div>
+    </div>
+  </section>
+
+  <!-- ==================== Tab 4: Source Code ==================== -->
+  <section id="tab-source" class="tab-panel">
+    <div class="card">
+      <h3>演算法說明</h3>
+      <ul style="padding-left:1.2rem;margin-bottom:1rem">
+        <li>使用 Stack（堆疊）實作 DFS（深度優先搜尋）的 Try and Error 方法。</li>
+        <li>每次從堆疊頂端取出當前位置，依序嘗試各方向（4 或 8 方向）。</li>
+        <li>找到可走的鄰居就入堆疊，繼續前進；所有方向都不通則回溯（pop）。</li>
+        <li>到達出口時，堆疊中的所有位置即為解答路徑。</li>
+        <li>使用 0（通道）/ 1（牆壁）/ 2（走過但不在解答路徑）/ 3（解答路徑）表示結果。</li>
+      </ul>
+
+      <h3>迷宮文字檔格式</h3>
+      <p style="margin-bottom:.5rem">第一行為 rows cols，之後為 0/1 矩陣：</p>
+      <div class="code-block">6 6
+1 1 1 1 1 1
+1 0 0 0 0 1
+1 1 1 1 0 1
+1 0 0 0 0 1
+1 0 1 1 0 1
+1 1 1 1 1 1</div>
+
+      <h3 style="margin-top:1.25rem">C++ 原始碼（HW3.cpp）</h3>
+      <div class="code-block" id="cppCode"></div>
+    </div>
+
+    <div class="card">
+      <h3>三個迷宮文字檔</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem">
+        <div>
+          <h4 style="font-size:.9rem;margin-bottom:.35rem">maze.txt（6x6）</h4>
+          <div class="code-block" style="font-size:.75rem" id="mazeTxt1"></div>
+        </div>
+        <div>
+          <h4 style="font-size:.9rem;margin-bottom:.35rem">maze2.txt（10x10）</h4>
+          <div class="code-block" style="font-size:.75rem" id="mazeTxt2"></div>
+        </div>
+        <div>
+          <h4 style="font-size:.9rem;margin-bottom:.35rem">maze3.txt（16x16）</h4>
+          <div class="code-block" style="font-size:.75rem" id="mazeTxt3"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ================================================================
+   MAZE DATA
+   ================================================================ */
+const MAZES = [
+  { name:"maze.txt", rows:6, cols:6, sx:1, sy:1, ex:4, ey:4,
+    data:[
+      [1,1,1,1,1,1],[1,0,0,0,0,1],[1,1,1,1,0,1],
+      [1,0,0,0,0,1],[1,0,1,1,0,1],[1,1,1,1,1,1]
+    ]},
+  { name:"maze2.txt", rows:10, cols:10, sx:1, sy:1, ex:8, ey:8,
+    data:[
+      [1,1,1,1,1,1,1,1,1,1],[1,0,1,0,0,0,1,0,0,1],[1,0,1,0,1,0,1,1,0,1],
+      [1,0,0,0,1,0,0,0,0,1],[1,1,1,0,1,1,1,1,0,1],[1,0,0,0,0,0,0,1,0,1],
+      [1,0,1,1,1,1,0,1,0,1],[1,0,0,0,1,0,0,0,0,1],[1,1,1,0,1,0,1,1,0,1],
+      [1,1,1,1,1,1,1,1,1,1]
+    ]},
+  { name:"maze3.txt", rows:16, cols:16, sx:1, sy:1, ex:14, ey:14,
+    data:[
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1],
+      [1,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1],[1,0,1,0,0,0,0,0,0,1,0,0,0,1,0,1],
+      [1,0,1,0,1,1,1,1,0,1,1,1,1,1,0,1],[1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,0,1,0,1,1,1,1,1,1,1,1,0,1],[1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1],
+      [1,0,1,1,1,1,1,0,1,1,1,1,0,1,0,1],[1,0,0,0,1,0,0,0,1,0,0,0,0,1,0,1],
+      [1,1,1,0,1,0,1,1,1,0,1,1,1,1,1,1],[1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1],
+      [1,0,1,1,1,1,1,0,1,1,1,0,1,1,0,1],[1,0,0,0,1,0,0,0,1,0,0,0,0,1,0,1],
+      [1,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ]}
+];
+
+const MAZE_TXTS = [
+`6 6
+1 1 1 1 1 1
+1 0 0 0 0 1
+1 1 1 1 0 1
+1 0 0 0 0 1
+1 0 1 1 0 1
+1 1 1 1 1 1`,
+`10 10
+1 1 1 1 1 1 1 1 1 1
+1 0 1 0 0 0 1 0 0 1
+1 0 1 0 1 0 1 1 0 1
+1 0 0 0 1 0 0 0 0 1
+1 1 1 0 1 1 1 1 0 1
+1 0 0 0 0 0 0 1 0 1
+1 0 1 1 1 1 0 1 0 1
+1 0 0 0 1 0 0 0 0 1
+1 1 1 0 1 0 1 1 0 1
+1 1 1 1 1 1 1 1 1 1`,
+`16 16
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+1 0 0 0 0 1 0 0 0 0 0 1 0 0 0 1
+1 0 1 1 0 1 0 1 1 1 0 1 0 1 0 1
+1 0 1 0 0 0 0 0 0 1 0 0 0 1 0 1
+1 0 1 0 1 1 1 1 0 1 1 1 1 1 0 1
+1 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1
+1 1 1 0 1 0 1 1 1 1 1 1 1 1 0 1
+1 0 0 0 0 0 1 0 0 0 0 0 0 1 0 1
+1 0 1 1 1 1 1 0 1 1 1 1 0 1 0 1
+1 0 0 0 1 0 0 0 1 0 0 0 0 1 0 1
+1 1 1 0 1 0 1 1 1 0 1 1 1 1 1 1
+1 0 0 0 0 0 1 0 0 0 1 0 0 0 0 1
+1 0 1 1 1 1 1 0 1 1 1 0 1 1 0 1
+1 0 0 0 1 0 0 0 1 0 0 0 0 1 0 1
+1 1 1 0 0 0 1 0 0 0 1 1 0 0 0 1
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1`
+];
+
+/* ================================================================
+   DIRECTIONS
+   ================================================================ */
+const MOVE8=[[-1,0],[-1,1],[0,1],[1,1],[1,0],[1,-1],[0,-1],[-1,-1]];
+const MOVE4=[[-1,0],[0,1],[1,0],[0,-1]];
+const DIR_NAMES_8=['N','NE','E','SE','S','SW','W','NW'];
+const DIR_NAMES_4=['N','E','S','W'];
+
+/* ================================================================
+   SOLVER STATE
+   ================================================================ */
+let maze,mark,grid,stack,solved,animTimer,steps,mousePos,solutionPath;
+let CELL,rows,cols,sx,sy,ex,ey,moves,maxDir;
+let animating=false;
+let currentMazeData=null; // for random mazes
+
+const canvas=document.getElementById('maze-canvas');
+const ctx=canvas.getContext('2d');
+
+/* ================================================================
+   INIT MAZE
+   ================================================================ */
+function initMaze(){
+  clearInterval(animTimer);animating=false;
+  const mi=+document.getElementById('mazeSelect').value;
+  const dirN=+document.getElementById('dirSelect').value;
+
+  if(mi===3){
+    // random maze
+    if(!currentMazeData){generateRandomMaze();return;}
+    rows=currentMazeData.length;cols=currentMazeData[0].length;
+    sx=+document.getElementById('startR').value;
+    sy=+document.getElementById('startC').value;
+    ex=+document.getElementById('exitR').value;
+    ey=+document.getElementById('exitC').value;
+    maze=currentMazeData.map(r=>r.slice());
+  }else{
+    const M=MAZES[mi];
+    rows=M.rows;cols=M.cols;
+    sx=+document.getElementById('startR').value||M.sx;
+    sy=+document.getElementById('startC').value||M.sy;
+    ex=+document.getElementById('exitR').value||M.ex;
+    ey=+document.getElementById('exitC').value||M.ey;
+    document.getElementById('startR').value=sx;
+    document.getElementById('startC').value=sy;
+    document.getElementById('exitR').value=ex;
+    document.getElementById('exitC').value=ey;
+    maze=M.data.map(r=>r.slice());
+  }
+
+  moves=dirN===8?MOVE8:MOVE4;
+  maxDir=dirN;
+  mark=Array.from({length:rows},()=>Array(cols).fill(0));
+  grid=maze.map(r=>r.map(v=>v===1?'wall':'open'));
+  stack=[];solved=false;steps=0;mousePos=null;solutionPath=[];
+  CELL=Math.min(Math.floor(560/Math.max(rows,cols)),44);
+  if(CELL<6)CELL=6;
+  canvas.width=cols*CELL;canvas.height=rows*CELL;
+  document.getElementById('btnStart').disabled=false;
+  document.getElementById('btnStep').disabled=false;
+  document.getElementById('btnStart').textContent='▶ 開始';
+  document.getElementById('status').textContent='選擇迷宮並按「開始」';
+  document.getElementById('matrixOutput').style.display='none';
+  drawMaze();
+}
+
+/* ================================================================
+   DRAW MAZE
+   ================================================================ */
+function drawMaze(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const s=grid[r][c];
+    let color;
+    if(s==='wall')color='#3b3b4f';
+    else if(s==='open')color='#f0ece3';
+    else if(s==='visited')color='#6fa8dc';
+    else if(s==='dead')color='#f1c232';
+    else if(s==='path')color='#4caf50';
+    else color='#f0ece3';
+    ctx.fillStyle=color;
+    ctx.fillRect(c*CELL,r*CELL,CELL,CELL);
+    ctx.strokeStyle='#d0cec8';ctx.lineWidth=.5;
+    ctx.strokeRect(c*CELL,r*CELL,CELL,CELL);
+
+    // Draw numbers in cells when CELL is large enough
+    if(CELL>=18 && solved){
+      let val='';
+      if(maze[r][c]===1)val='1';
+      else if(grid[r][c]==='path')val='3';
+      else if(grid[r][c]==='visited'||grid[r][c]==='dead')val='2';
+      else val='0';
+      ctx.fillStyle=s==='wall'?'#aaa':'#333';
+      ctx.font=`${Math.max(CELL*0.4,10)}px ${getComputedStyle(document.body).fontFamily}`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(val,(c+.5)*CELL,(r+.5)*CELL);
+    }
+  }
+  // Start & Exit markers
+  ctx.fillStyle='#e06666';
+  fillRoundedRect(ctx,sy*CELL+2,sx*CELL+2,CELL-4,CELL-4,3);
+  ctx.fillStyle='#a64d79';
+  fillRoundedRect(ctx,ey*CELL+2,ex*CELL+2,CELL-4,CELL-4,3);
+
+  // Start/Exit labels
+  if(CELL>=20){
+    ctx.fillStyle='#fff';ctx.font=`bold ${Math.max(CELL*0.35,10)}px sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('S',(sy+.5)*CELL,(sx+.5)*CELL);
+    ctx.fillText('E',(ey+.5)*CELL,(ex+.5)*CELL);
+  }
+
+  // Mouse emoji
+  if(mousePos&&!solved){
+    ctx.font=`${Math.max(CELL-6,12)}px serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('🐭',(mousePos[1]+.5)*CELL,(mousePos[0]+.5)*CELL);
+  }
+  if(solved){
+    ctx.font=`${Math.max(CELL-6,12)}px serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('🏁',(ey+.5)*CELL,(ex+.5)*CELL);
+  }
+}
+
+function fillRoundedRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();ctx.fill();
+}
+
+/* ================================================================
+   STEP-BY-STEP SOLVER
+   ================================================================ */
+function stepOnce(){
+  if(solved)return true;
+  if(stack.length===0&&steps===0){
+    stack.push({x:sx,y:sy,dir:0});
+    mark[sx][sy]=1;grid[sx][sy]='visited';mousePos=[sx,sy];
+    steps++;drawMaze();
+    updateStatus(`步數: ${steps} | 堆疊深度: ${stack.length} | 位置: (${sx}, ${sy})`);
+    return false;
+  }
+  if(stack.length===0){
+    document.getElementById('status').innerHTML='<strong style="color:#dc2626">❌ 此迷宮無解！</strong>';
+    animating=false;clearInterval(animTimer);
+    document.getElementById('btnStart').disabled=false;
+    document.getElementById('btnStart').textContent='▶ 開始';
+    showMatrixOutput();drawMaze();return true;
+  }
+  let top=stack[stack.length-1];
+  let i=top.x,j=top.y,d=top.dir;
+  let moved=false;
+  while(d<maxDir){
+    const ni=i+moves[d][0],nj=j+moves[d][1];
+    if(ni===ex&&nj===ey){
+      top.dir=d+1;
+      stack.push({x:ex,y:ey,dir:0});
+      solutionPath=stack.map(s=>[s.x,s.y]);
+      for(const[r,c]of solutionPath)if(grid[r][c]!=='wall')grid[r][c]='path';
+      grid[sx][sy]='path';
+      // Mark dead ends in maze array
+      for(let rr=0;rr<rows;rr++)for(let cc=0;cc<cols;cc++){
+        if(grid[rr][cc]==='visited')maze[rr][cc]=2;
+        else if(grid[rr][cc]==='dead')maze[rr][cc]=2;
+        else if(grid[rr][cc]==='path')maze[rr][cc]=3;
+      }
+      solved=true;mousePos=null;steps++;
+      drawMaze();
+      document.getElementById('status').innerHTML=
+        `<strong style="color:#16a34a">✅ 找到出口！</strong> 總步數: ${steps} | 路徑長度: ${solutionPath.length}`;
+      animating=false;clearInterval(animTimer);
+      document.getElementById('btnStart').disabled=false;
+      document.getElementById('btnStart').textContent='▶ 開始';
+      document.getElementById('btnStep').disabled=false;
+      showMatrixOutput();
+      return true;
+    }
+    if(ni>=0&&ni<rows&&nj>=0&&nj<cols&&maze[ni][nj]===0&&mark[ni][nj]===0){
+      mark[ni][nj]=1;grid[ni][nj]='visited';
+      top.dir=d+1;
+      stack.push({x:ni,y:nj,dir:0});
+      mousePos=[ni,nj];moved=true;break;
+    }
+    d++;
+  }
+  if(!moved){
+    stack.pop();
+    if(grid[i][j]!=='path'&&!(i===sx&&j===sy))grid[i][j]='dead';
+    if(stack.length>0)mousePos=[stack[stack.length-1].x,stack[stack.length-1].y];
+    top.dir=d;
+  }
+  steps++;drawMaze();
+  const dirLabel=maxDir===8?DIR_NAMES_8[Math.min(d,7)]:DIR_NAMES_4[Math.min(d,3)];
+  updateStatus(`步數: ${steps} | 堆疊深度: ${stack.length} | 位置: (${mousePos?mousePos[0]:'-'}, ${mousePos?mousePos[1]:'-'}) | 方向: ${dirLabel}`);
+  return false;
+}
+
+function updateStatus(txt){document.getElementById('status').textContent=txt}
+
+function showMatrixOutput(){
+  const el=document.getElementById('matrixOutput');
+  el.style.display='block';
+  let html='<strong>0/1/2/3 Matrix Output:</strong>\n\n';
+  for(let r=0;r<rows;r++){
+    let line='';
+    for(let c=0;c<cols;c++){
+      const v=maze[r][c];
+      if(v===1)line+=`<span class="wall-char">1</span> `;
+      else if(v===3)line+=`<span class="path-char">3</span> `;
+      else if(v===2)line+=`<span class="visit-char">2</span> `;
+      else line+=`0 `;
+    }
+    html+=line.trim()+'\n';
+  }
+  el.innerHTML=html;
+}
+
+/* ================================================================
+   RANDOM MAZE GENERATOR (Recursive Backtracker)
+   ================================================================ */
+function generateRandomMaze(targetCanvas,targetRows,targetCols){
+  let rr=targetRows||ensureOdd(+document.getElementById('randRows').value);
+  let cc=targetCols||ensureOdd(+document.getElementById('randCols').value);
+  if(rr<7)rr=7;if(cc<7)cc=7;
+  document.getElementById('randRows').value=rr;
+  document.getElementById('randCols').value=cc;
+
+  const m=Array.from({length:rr},()=>Array(cc).fill(1));
+  // Carve using DFS
+  const startR2=1,startC2=1;
+  m[startR2][startC2]=0;
+  const stk=[[startR2,startC2]];
+  const dirs4=[[0,2],[0,-2],[2,0],[-2,0]];
+
+  while(stk.length>0){
+    const[cr,cc2]=stk[stk.length-1];
+    const neighbors=[];
+    for(const[dr,dc]of dirs4){
+      const nr=cr+dr,nc=cc2+dc;
+      if(nr>0&&nr<rr-1&&nc>0&&nc<cc-1&&m[nr][nc]===1){
+        neighbors.push([nr,nc,cr+dr/2,cc2+dc/2]);
+      }
+    }
+    if(neighbors.length===0){stk.pop();continue;}
+    const[nr,nc,wr,wc]=neighbors[Math.floor(Math.random()*neighbors.length)];
+    m[wr][wc]=0;m[nr][nc]=0;
+    stk.push([nr,nc]);
+  }
+
+  currentMazeData=m;
+  const newSx=1,newSy=1,newEx=rr-2,newEy=cc-2;
+  // Ensure exit is open
+  m[newEx][newEy]=0;
+  document.getElementById('startR').value=newSx;
+  document.getElementById('startC').value=newSy;
+  document.getElementById('exitR').value=newEx;
+  document.getElementById('exitC').value=newEy;
+  return m;
+}
+
+function ensureOdd(n){return n%2===0?n+1:n}
+
+/* Generator for Tab 2 */
+function generateForTab2(){
+  let rr=ensureOdd(+document.getElementById('genRows').value);
+  let cc=ensureOdd(+document.getElementById('genCols').value);
+  if(rr<7)rr=7;if(cc<7)cc=7;
+  document.getElementById('genRows').value=rr;
+  document.getElementById('genCols').value=cc;
+  const dirN=+document.getElementById('genDir').value;
+
+  const m=Array.from({length:rr},()=>Array(cc).fill(1));
+  m[1][1]=0;
+  const stk=[[1,1]];
+  const dirs4=[[0,2],[0,-2],[2,0],[-2,0]];
+
+  while(stk.length>0){
+    const[cr,cc2]=stk[stk.length-1];
+    const neighbors=[];
+    for(const[dr,dc]of dirs4){
+      const nr=cr+dr,nc=cc2+dc;
+      if(nr>0&&nr<rr-1&&nc>0&&nc<cc-1&&m[nr][nc]===1){
+        neighbors.push([nr,nc,cr+dr/2,cc2+dc/2]);
+      }
+    }
+    if(neighbors.length===0){stk.pop();continue;}
+    const[nr,nc,wr,wc]=neighbors[Math.floor(Math.random()*neighbors.length)];
+    m[wr][wc]=0;m[nr][nc]=0;
+    stk.push([nr,nc]);
+  }
+  m[rr-2][cc-2]=0;
+
+  // If 8-way, add some extra openings for diagonal paths
+  if(dirN===8){
+    for(let i=1;i<rr-1;i++)for(let j=1;j<cc-1;j++){
+      if(m[i][j]===1&&Math.random()<0.15){
+        let openNeighbors=0;
+        for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){
+          if(m[i+dr]&&m[i+dr][j+dc]===0)openNeighbors++;
+        }
+        if(openNeighbors>=2)m[i][j]=0;
+      }
+    }
+  }
+
+  // Draw on gen-canvas
+  const genCanvas=document.getElementById('gen-canvas');
+  const gctx=genCanvas.getContext('2d');
+  const cellSz=Math.min(Math.floor(560/Math.max(rr,cc)),44);
+  genCanvas.width=cc*cellSz;genCanvas.height=rr*cellSz;
+
+  for(let r=0;r<rr;r++)for(let c=0;c<cc;c++){
+    gctx.fillStyle=m[r][c]===1?'#3b3b4f':'#f0ece3';
+    gctx.fillRect(c*cellSz,r*cellSz,cellSz,cellSz);
+    gctx.strokeStyle='#d0cec8';gctx.lineWidth=.5;
+    gctx.strokeRect(c*cellSz,r*cellSz,cellSz,cellSz);
+  }
+  gctx.fillStyle='#e06666';
+  gctx.fillRect(1*cellSz+2,1*cellSz+2,cellSz-4,cellSz-4);
+  gctx.fillStyle='#a64d79';
+  gctx.fillRect((cc-2)*cellSz+2,(rr-2)*cellSz+2,cellSz-4,cellSz-4);
+
+  document.getElementById('genStatus').textContent=`已產生 ${rr}x${cc} 隨機迷宮（${dirN} 方向連通）`;
+
+  // Show matrix
+  const gel=document.getElementById('genMatrixOutput');
+  gel.style.display='block';
+  let txt=`${rr} ${cc}\n`;
+  for(let r=0;r<rr;r++){
+    txt+=m[r].join(' ')+'\n';
+  }
+  gel.textContent=txt;
+
+  // Store for solving
+  window._genMaze=m;window._genRows=rr;window._genCols=cc;window._genDir=dirN;
+}
+
+/* ================================================================
+   SCREENSHOT GENERATION (auto-solve all combinations)
+   ================================================================ */
+function generateScreenshots(){
+  const container=document.getElementById('screenshotGrid');
+  container.innerHTML='';
+
+  const configs=[
+    {mi:0,dir:4,label:'maze.txt (6x6) — 4-way tour'},
+    {mi:0,dir:8,label:'maze.txt (6x6) — 8-way tour'},
+    {mi:1,dir:4,label:'maze2.txt (10x10) — 4-way tour'},
+    {mi:1,dir:8,label:'maze2.txt (10x10) — 8-way tour'},
+    {mi:2,dir:4,label:'maze3.txt (16x16) — 4-way tour'},
+    {mi:2,dir:8,label:'maze3.txt (16x16) — 8-way tour'},
+  ];
+
+  // Also generate 2 random maze screenshots
+  const randomConfigs=[
+    {rows:21,cols:21,dir:4,label:'隨機迷宮 (21x21) — 4-way tour'},
+    {rows:21,cols:21,dir:8,label:'隨機迷宮 (21x21) — 8-way tour'},
+  ];
+
+  for(const cfg of configs){
+    createScreenshot(container,cfg);
+  }
+  for(const cfg of randomConfigs){
+    createRandomScreenshot(container,cfg);
+  }
+}
+
+function createScreenshot(container,cfg){
+  const M=MAZES[cfg.mi];
+  const mz=M.data.map(r=>r.slice());
+  const mk=Array.from({length:M.rows},()=>Array(M.cols).fill(0));
+  const mv=cfg.dir===8?MOVE8:MOVE4;
+  const md=cfg.dir;
+
+  // Solve
+  const stk=[{x:M.sx,y:M.sy,dir:0}];
+  mk[M.sx][M.sy]=1;mz[M.sx][M.sy]=2;
+  let found=false;
+
+  outer:while(stk.length>0){
+    const top=stk[stk.length-1];
+    let i=top.x,j=top.y,d=top.dir;
+    let moved=false;
+    while(d<md){
+      const ni=i+mv[d][0],nj=j+mv[d][1];
+      if(ni===M.ex&&nj===M.ey){
+        top.dir=d+1;stk.push({x:M.ex,y:M.ey,dir:0});
+        for(const s of stk)mz[s.x][s.y]=3;
+        found=true;break outer;
+      }
+      if(ni>=0&&ni<M.rows&&nj>=0&&nj<M.cols&&mz[ni][nj]===0&&mk[ni][nj]===0){
+        mk[ni][nj]=1;mz[ni][nj]=2;
+        top.dir=d+1;stk.push({x:ni,y:nj,dir:0});
+        moved=true;break;
+      }
+      d++;
+    }
+    if(!moved){stk.pop();top.dir=d;}
+  }
+
+  // Draw
+  const card=document.createElement('div');card.className='screenshot-card';
+  const cvs=document.createElement('canvas');
+  const cellSz=Math.min(Math.floor(400/Math.max(M.rows,M.cols)),36);
+  cvs.width=M.cols*cellSz;cvs.height=M.rows*cellSz;
+  const c=cvs.getContext('2d');
+
+  for(let r=0;r<M.rows;r++)for(let cc=0;cc<M.cols;cc++){
+    const v=mz[r][cc];
+    c.fillStyle=v===1?'#3b3b4f':v===3?'#4caf50':v===2?'#6fa8dc':'#f0ece3';
+    c.fillRect(cc*cellSz,r*cellSz,cellSz,cellSz);
+    c.strokeStyle='#d0cec8';c.lineWidth=.5;
+    c.strokeRect(cc*cellSz,r*cellSz,cellSz,cellSz);
+    // Number
+    if(cellSz>=14){
+      c.fillStyle=v===1?'#aaa':'#fff';
+      c.font=`bold ${Math.max(cellSz*0.4,9)}px sans-serif`;
+      c.textAlign='center';c.textBaseline='middle';
+      c.fillText(v.toString(),(cc+.5)*cellSz,(r+.5)*cellSz);
+    }
+  }
+  c.fillStyle='#e06666';c.fillRect(M.sy*cellSz+1,M.sx*cellSz+1,cellSz-2,cellSz-2);
+  c.fillStyle='#a64d79';c.fillRect(M.ey*cellSz+1,M.ex*cellSz+1,cellSz-2,cellSz-2);
+  if(cellSz>=14){
+    c.fillStyle='#fff';c.font=`bold ${Math.max(cellSz*0.4,9)}px sans-serif`;
+    c.textAlign='center';c.textBaseline='middle';
+    c.fillText('S',(M.sy+.5)*cellSz,(M.sx+.5)*cellSz);
+    c.fillText('E',(M.ey+.5)*cellSz,(M.ex+.5)*cellSz);
+  }
+
+  const caption=document.createElement('div');caption.className='caption';
+  caption.textContent=cfg.label+(found?' ✅':' ❌');
+  card.appendChild(cvs);card.appendChild(caption);
+  container.appendChild(card);
+}
+
+function createRandomScreenshot(container,cfg){
+  const rr=ensureOdd(cfg.rows),cc=ensureOdd(cfg.cols);
+  const m=Array.from({length:rr},()=>Array(cc).fill(1));
+  m[1][1]=0;
+  const stk2=[[1,1]];
+  const dirs=[[0,2],[0,-2],[2,0],[-2,0]];
+  while(stk2.length>0){
+    const[cr,c2]=stk2[stk2.length-1];
+    const nb=[];
+    for(const[dr,dc]of dirs){
+      const nr=cr+dr,nc=c2+dc;
+      if(nr>0&&nr<rr-1&&nc>0&&nc<cc-1&&m[nr][nc]===1)nb.push([nr,nc,cr+dr/2,c2+dc/2]);
+    }
+    if(!nb.length){stk2.pop();continue;}
+    const[nr,nc,wr,wc]=nb[Math.floor(Math.random()*nb.length)];
+    m[wr][wc]=0;m[nr][nc]=0;stk2.push([nr,nc]);
+  }
+  m[rr-2][cc-2]=0;
+
+  if(cfg.dir===8){
+    for(let i=1;i<rr-1;i++)for(let j=1;j<cc-1;j++){
+      if(m[i][j]===1&&Math.random()<0.15){
+        let on=0;
+        for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]])if(m[i+dr]&&m[i+dr][j+dc]===0)on++;
+        if(on>=2)m[i][j]=0;
+      }
+    }
+  }
+
+  // Solve
+  const mz=m.map(r=>r.slice());
+  const mk=Array.from({length:rr},()=>Array(cc).fill(0));
+  const mv=cfg.dir===8?MOVE8:MOVE4;const md=cfg.dir;
+  const ssx=1,ssy=1,eex=rr-2,eey=cc-2;
+  const stk=[{x:ssx,y:ssy,dir:0}];mk[ssx][ssy]=1;mz[ssx][ssy]=2;
+  let found=false;
+  outer2:while(stk.length>0){
+    const top=stk[stk.length-1];let i=top.x,j=top.y,d=top.dir;let moved=false;
+    while(d<md){
+      const ni=i+mv[d][0],nj=j+mv[d][1];
+      if(ni===eex&&nj===eey){top.dir=d+1;stk.push({x:eex,y:eey,dir:0});for(const s of stk)mz[s.x][s.y]=3;found=true;break outer2;}
+      if(ni>=0&&ni<rr&&nj>=0&&nj<cc&&mz[ni][nj]===0&&mk[ni][nj]===0){mk[ni][nj]=1;mz[ni][nj]=2;top.dir=d+1;stk.push({x:ni,y:nj,dir:0});moved=true;break;}
+      d++;
+    }
+    if(!moved){stk.pop();top.dir=d;}
+  }
+
+  const card=document.createElement('div');card.className='screenshot-card';
+  const cvs=document.createElement('canvas');
+  const cellSz=Math.min(Math.floor(400/Math.max(rr,cc)),36);
+  cvs.width=cc*cellSz;cvs.height=rr*cellSz;
+  const c=cvs.getContext('2d');
+  for(let r=0;r<rr;r++)for(let j=0;j<cc;j++){
+    const v=mz[r][j];
+    c.fillStyle=v===1?'#3b3b4f':v===3?'#4caf50':v===2?'#6fa8dc':'#f0ece3';
+    c.fillRect(j*cellSz,r*cellSz,cellSz,cellSz);
+    c.strokeStyle='#d0cec8';c.lineWidth=.5;
+    c.strokeRect(j*cellSz,r*cellSz,cellSz,cellSz);
+  }
+  c.fillStyle='#e06666';c.fillRect(ssy*cellSz+1,ssx*cellSz+1,cellSz-2,cellSz-2);
+  c.fillStyle='#a64d79';c.fillRect(eey*cellSz+1,eex*cellSz+1,cellSz-2,cellSz-2);
+
+  const caption=document.createElement('div');caption.className='caption';
+  caption.textContent=cfg.label+(found?' ✅':' ❌');
+  card.appendChild(cvs);card.appendChild(caption);
+  container.appendChild(card);
+}
+
+/* ================================================================
+   EVENT LISTENERS
+   ================================================================ */
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='screenshots')generateScreenshots();
+  });
+});
+
+// Maze selector
+document.getElementById('mazeSelect').addEventListener('change',()=>{
+  const v=+document.getElementById('mazeSelect').value;
+  document.getElementById('randomControls').style.display=v===3?'flex':'none';
+  if(v!==3){
+    currentMazeData=null;
+    const M=MAZES[v];
+    document.getElementById('startR').value=M.sx;
+    document.getElementById('startC').value=M.sy;
+    document.getElementById('exitR').value=M.ex;
+    document.getElementById('exitC').value=M.ey;
+  }
+  clearInterval(animTimer);animating=false;
+  document.getElementById('btnStart').textContent='▶ 開始';
+  initMaze();
+});
+
+document.getElementById('dirSelect').addEventListener('change',()=>{
+  clearInterval(animTimer);animating=false;
+  document.getElementById('btnStart').textContent='▶ 開始';
+  initMaze();
+});
+
+// Start/Pause
+document.getElementById('btnStart').addEventListener('click',()=>{
+  if(animating){
+    clearInterval(animTimer);animating=false;
+    document.getElementById('btnStart').textContent='▶ 繼續';
+    document.getElementById('btnStep').disabled=false;
+    return;
+  }
+  if(solved||(stack.length===0&&steps>0))initMaze();
+  animating=true;
+  document.getElementById('btnStart').textContent='⏸ 暫停';
+  document.getElementById('btnStep').disabled=true;
+  document.getElementById('status').textContent='求解中...';
+  const spd=+document.getElementById('speedSlider').value;
+  const delay=Math.round(800/spd);
+  animTimer=setInterval(()=>{
+    const done=stepOnce();
+    if(done){clearInterval(animTimer);animating=false;document.getElementById('btnStart').textContent='▶ 開始';document.getElementById('btnStep').disabled=false;}
+  },delay);
+});
+
+// Step
+document.getElementById('btnStep').addEventListener('click',()=>{if(!animating)stepOnce()});
+
+// Reset
+document.getElementById('btnReset').addEventListener('click',()=>{
+  clearInterval(animTimer);animating=false;
+  document.getElementById('btnStart').textContent='▶ 開始';
+  initMaze();
+});
+
+// Speed slider
+document.getElementById('speedSlider').addEventListener('input',function(){
+  document.getElementById('speedVal').textContent=this.value;
+  if(animating){
+    clearInterval(animTimer);
+    const delay=Math.round(800/+this.value);
+    animTimer=setInterval(()=>{const done=stepOnce();if(done){clearInterval(animTimer);animating=false;document.getElementById('btnStart').textContent='▶ 開始';}},delay);
+  }
+});
+
+// Apply custom coordinates
+document.getElementById('btnApplyCoords').addEventListener('click',()=>{
+  clearInterval(animTimer);animating=false;
+  document.getElementById('btnStart').textContent='▶ 開始';
+  initMaze();
+});
+
+// Generate random maze
+document.getElementById('btnGenerate').addEventListener('click',()=>{
+  generateRandomMaze();
+  initMaze();
+});
+
+// Tab 2 controls
+document.getElementById('btnGen2').addEventListener('click',generateForTab2);
+document.getElementById('btnSolveGen').addEventListener('click',()=>{
+  if(!window._genMaze)return;
+  currentMazeData=window._genMaze.map(r=>r.slice());
+  document.getElementById('mazeSelect').value='3';
+  document.getElementById('randomControls').style.display='flex';
+  document.getElementById('randRows').value=window._genRows;
+  document.getElementById('randCols').value=window._genCols;
+  document.getElementById('dirSelect').value=window._genDir;
+  document.getElementById('startR').value=1;
+  document.getElementById('startC').value=1;
+  document.getElementById('exitR').value=window._genRows-2;
+  document.getElementById('exitC').value=window._genCols-2;
+  // Switch to solver tab
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('[data-tab="solver"]').classList.add('active');
+  document.getElementById('tab-solver').classList.add('active');
+  initMaze();
+});
+
+/* ================================================================
+   SOURCE CODE DISPLAY
+   ================================================================ */
+function populateSourceCode(){
+  const cppSrc=`#include <iostream>
+#include <fstream>
+#include <vector>
+
+using namespace std;
+
+struct offset {
+    int dx, dy;
+};
+
+offset move8[8] = {
+    {-1, 0},  // N
+    {-1, 1},  // NE
+    { 0, 1},  // E
+    { 1, 1},  // SE
+    { 1, 0},  // S
+    { 1,-1},  // SW
+    { 0,-1},  // W
+    {-1,-1}   // NW
+};
+
+offset move4[4] = {
+    {-1, 0},  // N
+    { 0, 1},  // E
+    { 1, 0},  // S
+    { 0,-1}   // W
+};
+
+struct position {
+    int x, y, dir;
+};
+
+class MazeSolver {
+private:
+    vector<vector<int>> maze;
+    vector<vector<int>> mark;
+    int m, p;
+    int startX, startY;
+    int exitX, exitY;
+    bool is8Way;
+
+public:
+    MazeSolver(string filename, int sx, int sy,
+               int ex, int ey, bool use8Way = true) {
+        startX = sx; startY = sy;
+        exitX = ex;  exitY = ey;
+        is8Way = use8Way;
+
+        ifstream file(filename);
+        if (!file.is_open()) {
+            cerr << "Error: cannot open " << filename << endl;
+            exit(1);
+        }
+        file >> m >> p;
+        maze.assign(m, vector<int>(p, 0));
+        mark.assign(m, vector<int>(p, 0));
+        for (int i = 0; i < m; ++i)
+            for (int j = 0; j < p; ++j)
+                file >> maze[i][j];
+        file.close();
+    }
+
+    bool findPath() {
+        vector<position> stack;
+        position step;
+        step.x = startX; step.y = startY; step.dir = 0;
+        stack.push_back(step);
+        mark[startX][startY] = 1;
+        maze[startX][startY] = 2;
+
+        int maxDir = is8Way ? 8 : 4;
+        offset* currentMove = is8Way ? move8 : move4;
+
+        while (!stack.empty()) {
+            step = stack.back();
+            stack.pop_back();
+            int i = step.x, j = step.y, d = step.dir;
+
+            while (d < maxDir) {
+                int ni = i + currentMove[d].dx;
+                int nj = j + currentMove[d].dy;
+
+                if (ni == exitX && nj == exitY) {
+                    position cur = {i, j, d + 1};
+                    stack.push_back(cur);
+                    position fin = {exitX, exitY, 0};
+                    stack.push_back(fin);
+                    for (int k = 0; k < (int)stack.size(); ++k)
+                        maze[stack[k].x][stack[k].y] = 3;
+                    return true;
+                }
+
+                if (ni >= 0 && ni < m &&
+                    nj >= 0 && nj < p &&
+                    maze[ni][nj] == 0 &&
+                    mark[ni][nj] == 0) {
+                    mark[ni][nj] = 1;
+                    maze[ni][nj] = 2;
+                    step.x = i; step.y = j;
+                    step.dir = d + 1;
+                    stack.push_back(step);
+                    position next;
+                    next.x = ni; next.y = nj; next.dir = 0;
+                    stack.push_back(next);
+                    break;
+                } else { d++; }
+            }
+        }
+        return false;
+    }
+
+    void printMaze() {
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < p; ++j)
+                cout << maze[i][j] << " ";
+            cout << endl;
+        }
+    }
+};
+
+int main() {
+    string filename;
+    cout << "Enter maze file: ";
+    cin >> filename;
+    ifstream file(filename);
+    int m, p; file >> m >> p; file.close();
+    int ex = m - 2, ey = p - 2;
+    MazeSolver solver(filename, 1, 1, ex, ey, true);
+    if (solver.findPath())
+        cout << "Path found! (3=path, 2=dead end):" << endl;
+    else
+        cout << "No solution!" << endl;
+    solver.printMaze();
+    return 0;
+}`;
+
+  // Simple syntax highlighting
+  const el=document.getElementById('cppCode');
+  el.textContent=cppSrc;
+
+  // Maze text files
+  document.getElementById('mazeTxt1').textContent=MAZE_TXTS[0];
+  document.getElementById('mazeTxt2').textContent=MAZE_TXTS[1];
+  document.getElementById('mazeTxt3').textContent=MAZE_TXTS[2];
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+populateSourceCode();
+initMaze();
+</script>
+</body>
+</html>
