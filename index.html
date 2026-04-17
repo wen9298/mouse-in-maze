@@ -182,7 +182,7 @@ canvas{display:block;margin:0 auto;image-rendering:pixelated;border-radius:4px}
         <button class="btn" id="btnReset">↺ 重置</button>
         <div class="speed-wrap">
           <span>速度</span>
-          <input type="range" id="speedSlider" min="1" max="20" value="6" step="1">
+          <input type="range" id="speedSlider" min="1" max="10" value="6" step="1">
           <span id="speedVal">6</span>
         </div>
       </div>
@@ -264,7 +264,7 @@ canvas{display:block;margin:0 auto;image-rendering:pixelated;border-radius:4px}
   <section id="tab-screenshots" class="tab-panel">
     <div class="card">
       <h3>Output Screenshots</h3>
-      <p>使用 0/1/2/3 表示迷宮與解答；以 dataGridView 搭配背景顏色呈現迷宮。</p>
+      <p>0代表通道、1代表牆壁、2代表走過但不在解答路徑（死路）、3代表解答路徑；以 dataGridView 搭配背景顏色呈現迷宮。</p>
       <div class="screenshots" id="screenshotGrid"></div>
     </div>
   </section>
@@ -274,7 +274,7 @@ canvas{display:block;margin:0 auto;image-rendering:pixelated;border-radius:4px}
     <div class="card">
       <h3>演算法說明</h3>
       <ul style="padding-left:1.2rem;margin-bottom:1rem">
-        <li>使用 Stack（堆疊）實作 DFS（深度優先搜尋）的 Try and Error 方法。</li>
+        <li>使用 Stack 實作 DFS 的 Try and Error 方法。</li>
         <li>每次從堆疊頂端取出當前位置，依序嘗試各方向（4個或8個方向）。</li>
         <li>找到可走的鄰居就入堆疊，繼續前進；所有方向都不通則回溯（pop）。</li>
         <li>到達出口時，堆疊中的所有位置即為解答路徑。</li>
@@ -732,18 +732,18 @@ function generateScreenshots(){
   container.innerHTML='';
 
   const configs=[
-    {mi:0,dir:4,label:'maze.txt (6x6) — 4-way tour'},
-    {mi:0,dir:8,label:'maze.txt (6x6) — 8-way tour'},
-    {mi:1,dir:4,label:'maze2.txt (10x10) — 4-way tour'},
-    {mi:1,dir:8,label:'maze2.txt (10x10) — 8-way tour'},
-    {mi:2,dir:4,label:'maze3.txt (16x16) — 4-way tour'},
-    {mi:2,dir:8,label:'maze3.txt (16x16) — 8-way tour'},
+    {mi:0,dir:4,label:'maze.txt (6x6) — 4個方向'},
+    {mi:0,dir:8,label:'maze.txt (6x6) — 8個方向'},
+    {mi:1,dir:4,label:'maze2.txt (10x10) — 4個方向'},
+    {mi:1,dir:8,label:'maze2.txt (10x10) — 8個方向'},
+    {mi:2,dir:4,label:'maze3.txt (16x16) — 4個方向'},
+    {mi:2,dir:8,label:'maze3.txt (16x16) — 8個方向'},
   ];
 
   // Also generate 2 random maze screenshots
   const randomConfigs=[
-    {rows:21,cols:21,dir:4,label:'隨機迷宮 (21x21) — 4-way tour'},
-    {rows:21,cols:21,dir:8,label:'隨機迷宮 (21x21) — 8-way tour'},
+    {rows:21,cols:21,dir:4,label:'隨機迷宮 (21x21) — 4個方向'},
+    {rows:21,cols:21,dir:8,label:'隨機迷宮 (21x21) — 8個方向'},
   ];
 
   for(const cfg of configs){
